@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>বিদ্যালয়ের তথ্য ফর্ম</title>
+  <style>
+    :root {
+      --primary: #4a6bdf;
+      --primary-dark: #3a56b2;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --white: #ffffff;
+      --gray: #e0e0e0;
+      --success: #28a745;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: 'Hind Siliguri', Arial, sans-serif;
+    }
+    body {
+      background-color: var(--light);
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: var(--white);
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--gray);
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--gray);
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    button {
+      background-color: var(--primary);
+      color: var(--white);
+      border: none;
+      padding: 14px;
+      font-size: 16px;
+      width: 100%;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+    .card {
+      background: var(--white);
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid var(--primary);
+      border-radius: 5px;
+    }
+    .success-message {
+      text-align: center;
+      color: var(--success);
+      font-weight: bold;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>বিদ্যালয়ের তথ্য যোগ করুন</h1>
+    <form id="infoForm">
+      <div class="form-group">
+        <label for="name">নাম</label>
+        <input type="text" id="name" placeholder="আপনার নাম লিখুন" required>
+      </div>
+      <div class="form-group">
+        <label for="schoolName">বিদ্যালয়ের নাম</label>
+        <input type="text" id="schoolName" placeholder="বিদ্যালয়ের নাম লিখুন" required>
+      </div>
+      <div class="form-group">
+        <label for="eiin">EIIN কোড</label>
+        <input type="number" id="eiin" placeholder="শুধু সংখ্যায় দিন" required>
+      </div>
+      <div class="form-group">
+        <label for="schoolPhone">বিদ্যালয়ের নাম্বার</label>
+        <input type="tel" id="schoolPhone" placeholder="যেমনঃ 017xxxxxxxx" required pattern="[0-9]{11}">
+      </div>
+      <button type="submit">তথ্য জমা দিন</button>
+      <div class="success-message" id="successMessage">✅ তথ্য সফলভাবে জমা হয়েছে!</div>
+    </form>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js';
+    import { getFirestore, collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBmbi1mzHdtU0eo58xji5limi357tdGkho",
+      authDomain: "petinfo-f960f.firebaseapp.com",
+      projectId: "petinfo-f960f",
+      storageBucket: "petinfo-f960f.appspot.com",
+      messagingSenderId: "829848754087",
+      appId: "1:829848754087:web:bc6d1a4d59a1f39444c882"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.getElementById('infoForm');
+    const list = document.getElementById('acceptedList');
+    const successMsg = document.getElementById('successMessage');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const schoolName = document.getElementById('schoolName').value.trim();
+      const eiin = document.getElementById('eiin').value.trim();
+      const schoolPhone = document.getElementById('schoolPhone').value.trim();
+
+      try {
+        await addDoc(collection(db, "schools"), {
+          name,
+          schoolName,
+          eiin,
+          schoolPhone,
+          status: "pending"
+        });
+        successMsg.style.display = "block";
+        setTimeout(() => {
+          successMsg.style.display = "none";
+        }, 3000);
+        form.reset();
+        // সফলভাবে সাবমিট হলে ইনডেক্স পেজে রিডাইরেক্ট করুন
+        setTimeout(() => {
+        window.location.href = "index.html";
+        }, 1000); // 2000 মিলিসেকেন্ড = 2 সেকেন্ড
+      // অথবা যদি একই ফাইলে থাকে: window.location.reload();
+      
+      } catch (error) {
+        console.error("Error:", error);
+        alert("ত্রুটি ঘটেছে: " + error.message);
+      }
+    });
+
+    async function loadAccepted() {
+      const q = query(collection(db, "schools"), where("status", "==", "accepted"));
+      const snapshot = await getDocs(q);
+      list.innerHTML = '';
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement('div');
+        div.className = "card";
+        div.innerHTML = `
+          <strong>নাম:</strong> ${data.name}<br>
+          <strong>বিদ্যালয়ের নাম:</strong> ${data.schoolName}<br>
+          <strong>EIIN কোড:</strong> ${data.eiin}<br>
+          <strong>বিদ্যালয়ের নাম্বার:</strong> ${data.schoolPhone}
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', loadAccepted);
+  </script>
+</body>
+</html>
